@@ -34,7 +34,7 @@ static volatile uint8_t dis_hint_timer_counter = 0;
 static bool refresh_home = true;
 
 #if !EMULATOR
-void chagdisTimer(void) {
+void chargeDisTimer(void) {
   charge_dis_timer_counter =
       charge_dis_timer_counter > 8 ? 0 : charge_dis_timer_counter + 1;
 

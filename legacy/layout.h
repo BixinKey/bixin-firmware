@@ -26,7 +26,7 @@
 #include "bitmaps.h"
 
 #if !EMULATOR
-void chagdisTimer(void);
+void chargeDisTimer(void);
 #endif
 bool layoutNeedRefresh(void);
 void layoutRefreshSet(bool refresh);
