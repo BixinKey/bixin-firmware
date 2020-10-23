@@ -219,7 +219,7 @@ uint8_t layoutStatusLogo(bool force_fresh) {
   static bool ble_adv_status_bak = false;
   static bool usb_status_bak = false;
   static uint8_t battery_bak = 0xff;
-  static uint8_t chag_dis_counter_bak = 0;
+  static uint8_t charge_dis_counter_bak = 0;
   static uint8_t cur_lv_dis = 0xff;
   static uint8_t dis_power_flag = 0;
   uint8_t pad = 16;
@@ -277,8 +277,8 @@ uint8_t layoutStatusLogo(bool force_fresh) {
     usb_connect_status = 0;
   }
   if (sys_usbState() == true) {
-    if (chag_dis_counter_bak != charge_dis_timer_counter) {
-      chag_dis_counter_bak = charge_dis_timer_counter;
+    if (charge_dis_counter_bak != charge_dis_timer_counter) {
+      charge_dis_counter_bak = charge_dis_timer_counter;
       if (cur_lv_dis == 0xff) {
         cur_lv_dis = battery_cap;
       }
