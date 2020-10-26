@@ -49,6 +49,11 @@
 /* Display info timeout */
 uint32_t system_millis_display_info_start = 0;
 
+#if !EMULATOR
+static volatile uint8_t charge_dis_timer_counter = 0;
+static volatile uint8_t dis_hint_timer_counter = 0;
+#endif
+
 #define DEVICE_INFO_PAGE_NUM 4
 
 const char *ui_prompt_sign_trans[2] = {"Signing transaction", "签名交易中..."};
@@ -62,6 +67,17 @@ const char *ui_prompt_seed_pin[2] = {"PIN REF Table", "PIN码对照表"};
 const char *ui_prompt_seed_pin_ack[2] = {"PIN REF Table", "PIN码对照表"};
 const char *ui_prompt_singing[2] = {"Singiing", "签名中..."};
 const char *ui_prompt_verifying[2] = {"Verifying", "验签中..."};
+
+#if !EMULATOR
+void chargeDisTimer(void) {
+  charge_dis_timer_counter =
+      charge_dis_timer_counter > 8 ? 0 : charge_dis_timer_counter + 1;
+
+  if ((sys_usbState() == true) && (dis_hint_timer_counter <= 14)) {
+    dis_hint_timer_counter++;
+  }
+}
+#endif
 
 #if !BITCOIN_ONLY
 
@@ -292,7 +308,180 @@ void layoutLabel(char *label) {
                             FONT_STANDARD);
   }
 }
+uint8_t layoutStatusLogoEx(bool force_fresh) {
+  static bool nfc_status_bak = false;
+  static bool ble_status_bak = false;
+  static bool ble_adv_status_bak = false;
+  static bool usb_status_bak = false;
+  static uint8_t battery_bak = 0xff;
+  static uint8_t charge_dis_counter_bak = 0;
+  static uint8_t cur_lv_dis = 0xff;
+  static uint8_t dis_power_flag = 0;
+  uint8_t pad = 16;
+  bool refresh = false;
+  uint8_t ret = 0;
 
+  if (!ble_name_state()) {
+    ble_request_info(BLE_CMD_BT_NAME);
+    delay_ms(5);
+  }
+  if (!ble_ver_state()) {
+    ble_request_info(BLE_CMD_VER);
+    delay_ms(5);
+  }
+  if (!ble_battery_state()) {
+    ble_request_info(BLE_CMD_BATTERY);
+    delay_ms(5);
+  }
+
+  if (sys_nfcState() == true) {
+    if (force_fresh || false == nfc_status_bak) {
+      nfc_status_bak = true;
+      oledDrawBitmap(OLED_WIDTH - 3 * LOGO_WIDTH - pad, 0, &bmp_nfc);
+      refresh = true;
+    }
+  } else if (true == nfc_status_bak) {
+    nfc_status_bak = false;
+    oledClearBitmap(OLED_WIDTH - 3 * LOGO_WIDTH - pad, 0, &bmp_nfc);
+    refresh = true;
+  }
+  if (sys_bleState() == true) {
+    if (force_fresh || false == ble_status_bak) {
+      ble_status_bak = true;
+      oledDrawBitmap(OLED_WIDTH - 2 * LOGO_WIDTH - pad, 0, &bmp_blecon);
+      refresh = true;
+    }
+  } else if (true == ble_status_bak) {
+    ble_status_bak = false;
+    oledDrawBitmap(OLED_WIDTH - 2 * LOGO_WIDTH - pad, 0, &bmp_ble);
+    refresh = true;
+    ret = 1;
+  } else if (ble_get_switch() == true) {
+    if (force_fresh || false == ble_adv_status_bak) {
+      ble_adv_status_bak = true;
+      oledDrawBitmap(OLED_WIDTH - 2 * LOGO_WIDTH - pad, 0, &bmp_ble);
+      refresh = true;
+    }
+  } else if (true == ble_adv_status_bak) {
+    ble_adv_status_bak = false;
+    oledClearBitmap(OLED_WIDTH - 2 * LOGO_WIDTH - pad, 0, &bmp_ble);
+    refresh = true;
+    ret = 1;
+  }
+  if (BUTTON_PRESS_BLE_ON == change_ble_sta_flag) {
+    oledClearPart();
+    if (ui_language) {
+      oledDrawStringCenter_zh(OLED_WIDTH / 2, 20, (uint8_t *)"蓝牙已开启,",
+                              FONT_STANDARD);
+      oledDrawStringCenter_zh(OLED_WIDTH / 2, 32,
+                              (uint8_t *)"长按向上键 ^ 可关闭", FONT_STANDARD);
+    } else {
+      oledDrawStringCenter(60, 20, "Bluetooth enabled,press", FONT_STANDARD);
+      oledDrawStringCenter(60, 30, "and hold up button ^", FONT_STANDARD);
+      oledDrawStringCenter(60, 40, "to turn it off.", FONT_STANDARD);
+    }
+    change_ble_sta_flag = BUTTON_PRESS_BLE_DF;
+    oledRefresh();
+    delay_ms(3000);
+    layoutRefreshSet(true);
+  } else if (BUTTON_PRESS_BLE_OFF == change_ble_sta_flag) {
+    oledClearPart();
+    if (ui_language) {
+      oledDrawStringCenter_zh(OLED_WIDTH / 2, 20, (uint8_t *)"蓝牙已关闭,",
+                              FONT_STANDARD);
+      oledDrawStringCenter_zh(OLED_WIDTH / 2, 32,
+                              (uint8_t *)"长按向上键 ^ 可开启", FONT_STANDARD);
+
+    } else {
+      oledDrawStringCenter(60, 20, (char *)" Bluetooth disabled,",
+                           FONT_STANDARD);
+      oledDrawStringCenter(60, 30, "press and hold up button^", FONT_STANDARD);
+      oledDrawStringCenter(60, 40, "to turn it on.", FONT_STANDARD);
+    }
+    change_ble_sta_flag = BUTTON_PRESS_BLE_DF;
+    oledRefresh();
+    delay_ms(3000);
+    layoutRefreshSet(true);
+  }
+  if (sys_usbState() == false) {
+    usb_connect_status = 0;
+  }
+  if (sys_usbState() == true) {
+    if (charge_dis_counter_bak != charge_dis_timer_counter) {
+      charge_dis_counter_bak = charge_dis_timer_counter;
+      if (cur_lv_dis == 0xff) {
+        cur_lv_dis = battery_cap;
+      }
+      disBatteryLevel(cur_lv_dis);
+      cur_lv_dis = cur_lv_dis >= 4 ? battery_cap : cur_lv_dis + 1;
+      refresh = true;
+    }
+    if ((dis_power_flag == 0) && (dis_hint_timer_counter == 4)) {
+      dis_power_flag = 1;
+      oledClearPart();
+      if (usb_connect_status == 1) {
+        if (ui_language) {
+          oledDrawStringCenter_zh(OLED_WIDTH / 2, 20,
+                                  (uint8_t *)"数据传输模式只提供",
+                                  FONT_STANDARD);
+          oledDrawStringCenter_zh(OLED_WIDTH / 2, 32,
+                                  (uint8_t *)"基本电力,如需充电",
+                                  FONT_STANDARD);
+          oledDrawStringCenter_zh(OLED_WIDTH / 2, 44,
+                                  (uint8_t *)"建议使用充电头!", FONT_STANDARD);
+
+        } else {
+          oledDrawStringCenter(60, 20, "Data Transfer Mode,", FONT_STANDARD);
+          oledDrawStringCenter(60, 30, "use a charger if you ", FONT_STANDARD);
+          oledDrawStringCenter(60, 40, "wanna faster charging.", FONT_STANDARD);
+        }
+      } else {
+        if (ui_language) {
+          oledDrawStringCenter_zh(OLED_WIDTH / 2, 20, (uint8_t *)"使用5V-200mA",
+                                  FONT_STANDARD);
+          oledDrawStringCenter_zh(OLED_WIDTH / 2, 32, (uint8_t *)"以上的充电头",
+                                  FONT_STANDARD);
+          oledDrawStringCenter_zh(OLED_WIDTH / 2, 44, (uint8_t *)"可快速充电!",
+                                  FONT_STANDARD);
+
+        } else {
+          oledDrawStringCenter(60, 20, "Speed up charging with ",
+                               FONT_STANDARD);
+          oledDrawStringCenter(60, 30, "5V and 200mA+ ", FONT_STANDARD);
+          oledDrawStringCenter(60, 40, "charge heads!", FONT_STANDARD);
+        }
+      }
+    }
+
+    if ((dis_power_flag == 1) && (dis_hint_timer_counter == 8)) {
+      dis_hint_timer_counter = 15;
+      layoutRefreshSet(true);
+    }
+    if (force_fresh || false == usb_status_bak) {
+      usb_status_bak = true;
+      oledDrawBitmap(OLED_WIDTH - LOGO_WIDTH - pad, 0, &bmp_usb);
+      refresh = true;
+    }
+  } else if (true == usb_status_bak) {
+    usb_status_bak = false;
+    oledClearBitmap(OLED_WIDTH - LOGO_WIDTH - pad, 0, &bmp_usb);
+    refresh = true;
+    force_fresh = true;
+    cur_lv_dis = battery_bak;
+    dis_power_flag = 0;
+    dis_hint_timer_counter = 0;
+    layoutRefreshSet(true);
+  }
+
+  if (battery_bak != battery_cap || force_fresh) {
+    battery_bak = battery_cap;
+    cur_lv_dis = battery_bak;
+    refresh = true;
+    disBatteryLevel(battery_bak);
+  }
+  if (refresh) oledRefresh();
+  return ret;
+}
 void layoutHome(void) {
   if (layoutLast == layoutHome || layoutLast == layoutScreensaver) {
     oledClear();
@@ -345,7 +534,7 @@ void layoutHome(void) {
     }
   }
 #if !EMULATOR
-  if (layoutStatusLogo(true)) {
+  if (layoutStatusLogoEx(true)) {
     recovery_abort();
     signing_abort();
     session_clear(true);
@@ -1464,7 +1653,7 @@ void layoutHomeInfo(void) {
     static uint32_t system_millis_logo_refresh = 0;
     // 1000 ms refresh
     if ((timer_ms() - system_millis_logo_refresh) >= 1000) {
-      if (layoutStatusLogo(false)) {
+      if (layoutStatusLogoEx(false)) {
         recovery_abort();
         signing_abort();
         session_clear(true);
