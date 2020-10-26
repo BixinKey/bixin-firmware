@@ -308,6 +308,7 @@ void layoutLabel(char *label) {
                             FONT_STANDARD);
   }
 }
+#if !EMULATOR
 uint8_t layoutStatusLogoEx(bool force_fresh) {
   static bool nfc_status_bak = false;
   static bool ble_status_bak = false;
@@ -482,6 +483,7 @@ uint8_t layoutStatusLogoEx(bool force_fresh) {
   if (refresh) oledRefresh();
   return ret;
 }
+#endif
 void layoutHome(void) {
   if (layoutLast == layoutHome || layoutLast == layoutScreensaver) {
     oledClear();
