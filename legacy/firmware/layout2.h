@@ -48,10 +48,10 @@ extern void *layoutLast;
 #define DISP_BACKUP_ONLY 0x03
 #if !EMULATOR
 typedef struct {
-  uint8_t nfc_status_bak : 1;
-  uint8_t ble_conn_status_bak : 1;
-  uint8_t ble_icon_status_bak : 1;
-  uint8_t usb_status_bak : 1;
+  uint8_t nfc_status_old : 1;
+  uint8_t ble_conn_status_old : 1;
+  uint8_t ble_icon_status_old : 1;
+  uint8_t usb_status_old : 1;
 } DEVICECONIOFO;
 #endif
 extern const char *ui_prompt_sign_trans[2];

@@ -54,7 +54,7 @@ static volatile uint8_t charge_dis_timer_counter = 0;
 static volatile uint8_t dis_hint_timer_counter = 0;
 static uint8_t charge_dis_counter_bak = 0;
 static uint8_t cur_level_dis = 0xff;
-static uint8_t battery_bak = 0xff;
+static uint8_t battery_old = 0xff;
 static uint8_t dis_power_flag = 0;
 static bool layout_refresh = false;
 DEVICECONIOFO device_con_status = {0};
@@ -331,13 +331,13 @@ void getBleDevInformation(void) {
 }
 void refreshNfcIcon(bool force_flag) {
   if (sys_nfcState() == true) {
-    if (force_flag || false == device_con_status.nfc_status_bak) {
-      device_con_status.nfc_status_bak = true;
+    if (force_flag || false == device_con_status.nfc_status_old) {
+      device_con_status.nfc_status_old = true;
       oledDrawBitmap(OLED_WIDTH - 3 * LOGO_WIDTH - 16, 0, &bmp_nfc);
       layout_refresh = true;
     }
-  } else if (true == device_con_status.nfc_status_bak) {
-    device_con_status.nfc_status_bak = false;
+  } else if (true == device_con_status.nfc_status_old) {
+    device_con_status.nfc_status_old = false;
     oledClearBitmap(OLED_WIDTH - 3 * LOGO_WIDTH - 16, 0, &bmp_nfc);
     layout_refresh = true;
   }
@@ -346,24 +346,24 @@ uint8_t refreshBleIcon(bool force_flag) {
   uint8_t ret = 0;
 
   if (sys_bleState() == true) {
-    if (force_flag || false == device_con_status.ble_conn_status_bak) {
-      device_con_status.ble_conn_status_bak = true;
+    if (force_flag || false == device_con_status.ble_conn_status_old) {
+      device_con_status.ble_conn_status_old = true;
       oledDrawBitmap(OLED_WIDTH - 2 * LOGO_WIDTH - 16, 0, &bmp_blecon);
       layout_refresh = true;
     }
-  } else if (true == device_con_status.ble_conn_status_bak) {
-    device_con_status.ble_conn_status_bak = false;
+  } else if (true == device_con_status.ble_conn_status_old) {
+    device_con_status.ble_conn_status_old = false;
     oledDrawBitmap(OLED_WIDTH - 2 * LOGO_WIDTH - 16, 0, &bmp_ble);
     layout_refresh = true;
     ret = 1;
   } else if (ble_get_switch() == true) {
-    if (force_flag || false == device_con_status.ble_icon_status_bak) {
-      device_con_status.ble_icon_status_bak = true;
+    if (force_flag || false == device_con_status.ble_icon_status_old) {
+      device_con_status.ble_icon_status_old = true;
       oledDrawBitmap(OLED_WIDTH - 2 * LOGO_WIDTH - 16, 0, &bmp_ble);
       layout_refresh = true;
     }
-  } else if (true == device_con_status.ble_icon_status_bak) {
-    device_con_status.ble_icon_status_bak = false;
+  } else if (true == device_con_status.ble_icon_status_old) {
+    device_con_status.ble_icon_status_old = false;
     oledClearBitmap(OLED_WIDTH - 2 * LOGO_WIDTH - 16, 0, &bmp_ble);
     layout_refresh = true;
     ret = 1;
@@ -457,11 +457,11 @@ void refresBatFlash(void) {
   }
 }
 void refreshBatteryLevel(uint8_t force_flag) {
-  if (battery_bak != battery_cap || force_flag) {
-    battery_bak = battery_cap;
-    cur_level_dis = battery_bak;
+  if (battery_old != battery_cap || force_flag) {
+    battery_old = battery_cap;
+    cur_level_dis = battery_old;
     layout_refresh = true;
-    disBatteryLevel(battery_bak);
+    disBatteryLevel(battery_old);
   }
 }
 void refreshUsbConnectTips(void) {
@@ -484,16 +484,16 @@ void disUsbConnectSometing(uint8_t force_flag) {
 
     refreshUsbConnectTips();
 
-    if (force_flag || false == device_con_status.usb_status_bak) {
-      device_con_status.usb_status_bak = true;
+    if (force_flag || false == device_con_status.usb_status_old) {
+      device_con_status.usb_status_old = true;
       oledDrawBitmap(OLED_WIDTH - LOGO_WIDTH - 16, 0, &bmp_usb);
       layout_refresh = true;
     }
-  } else if (true == device_con_status.usb_status_bak) {
-    device_con_status.usb_status_bak = false;
+  } else if (true == device_con_status.usb_status_old) {
+    device_con_status.usb_status_old = false;
     oledClearBitmap(OLED_WIDTH - LOGO_WIDTH - 16, 0, &bmp_usb);
     layout_refresh = true;
-    cur_level_dis = battery_bak;
+    cur_level_dis = battery_old;
     dis_power_flag = 0;
     dis_hint_timer_counter = 0;
     layoutRefreshSet(true);
