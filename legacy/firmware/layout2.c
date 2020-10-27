@@ -384,7 +384,7 @@ void disLongPressBleTips(void) {
       oledDrawStringCenter(60, 40, "to turn it off.", FONT_STANDARD);
     }
     change_ble_sta_flag = BUTTON_PRESS_BLE_DF;
-  } else if (BUTTON_PRESS_BLE_OFF == change_ble_sta_flag) {
+  } else if (change_ble_sta_flag == BUTTON_PRESS_BLE_OFF) {
     oledClearPart();
     if (ui_language) {
       oledDrawStringCenter_zh(OLED_WIDTH / 2, 20, (uint8_t *)"蓝牙已关闭,",
@@ -400,7 +400,7 @@ void disLongPressBleTips(void) {
     }
     change_ble_sta_flag = BUTTON_PRESS_BLE_DF;
   }
-  if ((BUTTON_PRESS_BLE_OFF == change_ble_sta_flag) ||
+  if ((change_ble_sta_flag == BUTTON_PRESS_BLE_OFF) ||
       (change_ble_sta_flag == BUTTON_PRESS_BLE_ON)) {
     oledRefresh();
     delay_ms(3000);
