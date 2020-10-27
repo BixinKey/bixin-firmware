@@ -57,7 +57,6 @@ static uint8_t cur_level_dis = 0xff;
 static uint8_t battery_old = 0xff;
 static uint8_t dis_power_flag = 0;
 static bool layout_refresh = false;
-DEVICECONIOFO device_con_status = {0};
 #endif
 
 #define DEVICE_INFO_PAGE_NUM 4
@@ -330,40 +329,44 @@ void getBleDevInformation(void) {
   }
 }
 void refreshNfcIcon(bool force_flag) {
+  static bool nfc_status_old = false;
+
   if (sys_nfcState() == true) {
-    if (force_flag || false == device_con_status.nfc_status_old) {
-      device_con_status.nfc_status_old = true;
+    if (force_flag || false == nfc_status_old) {
+      nfc_status_old = true;
       oledDrawBitmap(OLED_WIDTH - 3 * LOGO_WIDTH - 16, 0, &bmp_nfc);
       layout_refresh = true;
     }
-  } else if (true == device_con_status.nfc_status_old) {
-    device_con_status.nfc_status_old = false;
+  } else if (true == nfc_status_old) {
+    nfc_status_old = false;
     oledClearBitmap(OLED_WIDTH - 3 * LOGO_WIDTH - 16, 0, &bmp_nfc);
     layout_refresh = true;
   }
 }
 uint8_t refreshBleIcon(bool force_flag) {
+  static bool ble_conn_status_old = false;
+  static bool ble_icon_status_old = false;
   uint8_t ret = 0;
 
   if (sys_bleState() == true) {
-    if (force_flag || false == device_con_status.ble_conn_status_old) {
-      device_con_status.ble_conn_status_old = true;
+    if (force_flag || false == ble_conn_status_old) {
+      ble_conn_status_old = true;
       oledDrawBitmap(OLED_WIDTH - 2 * LOGO_WIDTH - 16, 0, &bmp_blecon);
       layout_refresh = true;
     }
-  } else if (true == device_con_status.ble_conn_status_old) {
-    device_con_status.ble_conn_status_old = false;
+  } else if (true == ble_conn_status_old) {
+    ble_conn_status_old = false;
     oledDrawBitmap(OLED_WIDTH - 2 * LOGO_WIDTH - 16, 0, &bmp_ble);
     layout_refresh = true;
     ret = 1;
   } else if (ble_get_switch() == true) {
-    if (force_flag || false == device_con_status.ble_icon_status_old) {
-      device_con_status.ble_icon_status_old = true;
+    if (force_flag || false == ble_icon_status_old) {
+      ble_icon_status_old = true;
       oledDrawBitmap(OLED_WIDTH - 2 * LOGO_WIDTH - 16, 0, &bmp_ble);
       layout_refresh = true;
     }
-  } else if (true == device_con_status.ble_icon_status_old) {
-    device_con_status.ble_icon_status_old = false;
+  } else if (true == ble_icon_status_old) {
+    ble_icon_status_old = false;
     oledClearBitmap(OLED_WIDTH - 2 * LOGO_WIDTH - 16, 0, &bmp_ble);
     layout_refresh = true;
     ret = 1;
@@ -476,6 +479,7 @@ void refreshUsbConnectTips(void) {
   }
 }
 void disUsbConnectSometing(uint8_t force_flag) {
+  static bool usb_status_old = false;
   if (sys_usbState() == false) {
     usb_connect_status = 0;
   }
@@ -484,13 +488,13 @@ void disUsbConnectSometing(uint8_t force_flag) {
 
     refreshUsbConnectTips();
 
-    if (force_flag || false == device_con_status.usb_status_old) {
-      device_con_status.usb_status_old = true;
+    if (force_flag || false == usb_status_old) {
+      usb_status_old = true;
       oledDrawBitmap(OLED_WIDTH - LOGO_WIDTH - 16, 0, &bmp_usb);
       layout_refresh = true;
     }
-  } else if (true == device_con_status.usb_status_old) {
-    device_con_status.usb_status_old = false;
+  } else if (true == usb_status_old) {
+    usb_status_old = false;
     oledClearBitmap(OLED_WIDTH - LOGO_WIDTH - 16, 0, &bmp_usb);
     layout_refresh = true;
     cur_level_dis = battery_old;

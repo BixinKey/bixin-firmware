@@ -46,14 +46,7 @@ extern void *layoutLast;
 #define DISP_NOT_ACTIVE 0x01  // Not Activated
 #define DISP_NEED_BACKUP 0x02
 #define DISP_BACKUP_ONLY 0x03
-#if !EMULATOR
-typedef struct {
-  uint8_t nfc_status_old : 1;
-  uint8_t ble_conn_status_old : 1;
-  uint8_t ble_icon_status_old : 1;
-  uint8_t usb_status_old : 1;
-} DEVICECONIOFO;
-#endif
+
 extern const char *ui_prompt_sign_trans[2];
 extern const char *ui_prompt_wakingup[2];
 extern const char *ui_prompt_updating[2];
