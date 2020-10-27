@@ -9,7 +9,6 @@
 #define BLE_ADV_OFF 0x00
 #define BLE_ADV_ON 0x01
 
-#define BUTTON_PRESS_BLE_DF 0x00
 #define BUTTON_PRESS_BLE_ON 0x01
 #define BUTTON_PRESS_BLE_OFF 0x02
 

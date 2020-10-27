@@ -383,7 +383,7 @@ void disLongPressBleTips(void) {
       oledDrawStringCenter(60, 30, "and hold up button ^", FONT_STANDARD);
       oledDrawStringCenter(60, 40, "to turn it off.", FONT_STANDARD);
     }
-    change_ble_sta_flag = BUTTON_PRESS_BLE_DF;
+    change_ble_sta_flag = 0;
   } else if (change_ble_sta_flag == BUTTON_PRESS_BLE_OFF) {
     oledClearPart();
     if (ui_language) {
@@ -398,7 +398,7 @@ void disLongPressBleTips(void) {
       oledDrawStringCenter(60, 30, "press and hold up button^", FONT_STANDARD);
       oledDrawStringCenter(60, 40, "to turn it on.", FONT_STANDARD);
     }
-    change_ble_sta_flag = BUTTON_PRESS_BLE_DF;
+    change_ble_sta_flag = 0;
   }
   if ((change_ble_sta_flag == BUTTON_PRESS_BLE_OFF) ||
       (change_ble_sta_flag == BUTTON_PRESS_BLE_ON)) {
@@ -445,7 +445,7 @@ void disUsbConnectTips(void) {
     disPowerChargeTips();
   }
 }
-void refresBatFlash(void) {
+void refreshBatteryFlash(void) {
   if (charge_dis_counter_bak != charge_dis_timer_counter) {
     charge_dis_counter_bak = charge_dis_timer_counter;
     if (cur_level_dis == 0xff) {
@@ -480,7 +480,7 @@ void disUsbConnectSometing(uint8_t force_flag) {
     usb_connect_status = 0;
   }
   if (sys_usbState() == true) {
-    refresBatFlash();
+    refreshBatteryFlash();
 
     refreshUsbConnectTips();
 
