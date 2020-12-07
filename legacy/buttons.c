@@ -107,7 +107,7 @@ void buttonsTimer(void) {
   }
   if ((buttonRead() & BTN_PIN_UP) == 0 && up_btn_timer_enable == 0) {
     up_btn_timer_counter++;
-    if (up_btn_timer_counter > 2) {
+    if (up_btn_timer_counter >= 10) {
       up_btn_timer_enable = 1;
       up_btn_timer_counter = 0;
       btn_up_long = true;
