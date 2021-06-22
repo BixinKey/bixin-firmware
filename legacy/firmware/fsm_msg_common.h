@@ -18,7 +18,7 @@
  */
 #include "menu_list.h"
 #include "mi2c.h"
-#include "se_chip.h"
+#include "se_hal.h"
 #include "storage.h"
 #include "storage_ex.h"
 
@@ -90,6 +90,8 @@ bool get_features(Features *resp) {
   resp->capabilities[6] = Capability_Capability_Stellar;
   resp->capabilities[7] = Capability_Capability_U2F;
 #endif
+
+#if !ONEKEY_MINI
   if (ble_name_state()) {
     resp->has_ble_name = true;
     strlcpy(resp->ble_name, ble_get_name(), sizeof(resp->ble_name));
@@ -102,6 +104,7 @@ bool get_features(Features *resp) {
     resp->has_ble_enable = true;
     resp->ble_enable = ble_get_switch();
   }
+#endif
   resp->has_se_enable = true;
   resp->se_enable = config_getWhetherUseSE();
   sn_version = se_get_version();
@@ -558,9 +561,11 @@ void fsm_msgApplySettings(const ApplySettings *msg) {
   if (msg->has_auto_lock_delay_ms) {
     config_setAutoLockDelayMs(msg->auto_lock_delay_ms);
   }
+#if !ONEKEY_MINI
   if (msg->has_use_ble) {
     config_setBleTrans(msg->use_ble);
   }
+#endif
   if (msg->has_is_bixinapp) {
     config_setIsBixinAPP();
   }
@@ -640,6 +645,10 @@ void fsm_msgGetNextU2FCounter() {
 }
 
 void fsm_msgBixinSeedOperate(const BixinSeedOperate *msg) {
+  (void)msg;
+#if ONEKEY_MINI
+
+#else
   uint8_t ucBuf[65], i = 0;
   uint32_t uiTemp;
 
@@ -687,6 +696,7 @@ void fsm_msgBixinSeedOperate(const BixinSeedOperate *msg) {
   }
   fsm_sendFailure(FailureType_Failure_DataError, NULL);
   layoutHome();
+#endif
 }
 
 void fsm_msgBixinReboot(const BixinReboot *msg) {
@@ -708,6 +718,10 @@ void fsm_msgBixinReboot(const BixinReboot *msg) {
 }
 
 void fsm_msgBixinMessageSE(const BixinMessageSE *msg) {
+  (void)msg;
+#if ONEKEY_MINI
+
+#else
   bool request_restore = false;
   bool request_backup = false;
   RESP_INIT(BixinOutMessageSE);
@@ -799,12 +813,18 @@ void fsm_msgBixinMessageSE(const BixinMessageSE *msg) {
   } else {
     msg_write(MessageType_MessageType_BixinOutMessageSE, resp);
   }
+#endif
   layoutHome();
   return;
 }
 
 void fsm_msgBixinBackupRequest(const BixinBackupRequest *msg) {
   (void)msg;
+
+#if ONEKEY_MINI
+
+#else
+
   CHECK_INITIALIZED
   // CHECK_PIN_UNCACHED
 
@@ -850,11 +870,16 @@ void fsm_msgBixinBackupRequest(const BixinBackupRequest *msg) {
     config_setUnfinishedBackup(false);
     config_setNeedsBackup(false);
   }
+#endif
   layoutHome();
   return;
 }
 
 void fsm_msgBixinRestoreRequest(const BixinRestoreRequest *msg) {
+  (void)msg;
+#if ONEKEY_MINI
+
+#else
   // CHECK_PIN
   CHECK_NOT_INITIALIZED
 
@@ -919,12 +944,15 @@ void fsm_msgBixinRestoreRequest(const BixinRestoreRequest *msg) {
   if (msg->data.bytes[1] == 1) {
     protectSeedPin(false, false, true);
   }
-
+#endif
   layoutHome();
   return;
 }
 
 void fsm_msgBixinVerifyDeviceRequest(const BixinVerifyDeviceRequest *msg) {
+  (void)msg;
+#if ONEKEY_MINI
+#else
   RESP_INIT(BixinVerifyDeviceAck);
   resp->cert.size = 1024;
   resp->signature.size = 512;
@@ -936,6 +964,7 @@ void fsm_msgBixinVerifyDeviceRequest(const BixinVerifyDeviceRequest *msg) {
     return;
   }
   msg_write(MessageType_MessageType_BixinVerifyDeviceAck, resp);
+#endif
   layoutHome();
   return;
 }
