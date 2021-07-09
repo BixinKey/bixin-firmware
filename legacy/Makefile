@@ -24,9 +24,7 @@ OBJS += segger_rtt/rtt_log.o
 
 OBJS += mi2c.o
 OBJS += se_chip.o
-ifeq ($(ONEKEY_MINI),1)
-OBJS += w25qxx.o
-endif
+
 endif
 
 OBJS += util.o
