@@ -5,7 +5,8 @@
 #include "util.h"
 #include "w25qxx.h"
 
-#define W25QXX_DUMMY_BYTE 0xA5
+#define W25QXX_DUMMY_BYTE   0xA5
+#define W25QXX_TIMEOUT      1024
 
 w25qxx_t w25qxx;
 
@@ -89,10 +90,13 @@ void w25qxx_read_uniq_id(void) {
 
   w25qxx_spi(W25QXX_CMD_READ_UNIQUE_ID);
 
-  for (uint8_t i = 0; i < 4; i++) w25qxx_spi(W25QXX_DUMMY_BYTE);
+  for (uint8_t i = 0; i < 4; i++) {
+    w25qxx_spi(W25QXX_DUMMY_BYTE);
+  }
 
-  for (uint8_t i = 0; i < 8; i++)
+  for (uint8_t i = 0; i < 8; i++) {
     w25qxx.uniq_id[i] = w25qxx_spi(W25QXX_DUMMY_BYTE);
+  }
 
   W25QXX_CS_HIGH;
 }
@@ -120,11 +124,13 @@ uint8_t w25qxx_read_status_register(uint8_t select) {
     w25qxx_spi(W25QXX_CMD_READ_REG_SR1);
     status = w25qxx_spi(W25QXX_DUMMY_BYTE);
     w25qxx.status_register1 = status;
-  } else if (select == 2) {
+  }
+  else if (select == 2) {
     w25qxx_spi(W25QXX_CMD_READ_REG_SR2);
     status = w25qxx_spi(W25QXX_DUMMY_BYTE);
     w25qxx.status_register2 = status;
-  } else {
+  }
+  else {
     w25qxx_spi(0x15);
     status = w25qxx_spi(W25QXX_DUMMY_BYTE);
     w25qxx.status_register3 = status;
@@ -140,10 +146,12 @@ void w25qxx_write_status_register(uint8_t select, uint8_t data) {
   if (select == 1) {
     w25qxx_spi(W25QXX_CMD_WRITE_REG_SR);
     w25qxx.status_register1 = data;
-  } else if (select == 2) {
+  }
+  else if (select == 2) {
     w25qxx_spi(0x31);
     w25qxx.status_register2 = data;
-  } else {
+  }
+  else {
     w25qxx_spi(0x11);
     w25qxx.status_register3 = data;
   }
@@ -242,9 +250,15 @@ bool w25qxx_init(void) {
   return true;
 }
 
-void w25qxx_erase_chip(void) {
-  while (w25qxx.lock == 1) {
+bool w25qxx_erase_chip(void) {
+  int32_t cnt = W25QXX_TIMEOUT;
+
+  while ((w25qxx.lock == 1) && (cnt-- >= 0)) {
     w25qxx_delay(1);
+  }
+
+  if (cnt < 0) {
+    return false;
   }
 
   w25qxx.lock = 1;
@@ -261,11 +275,18 @@ void w25qxx_erase_chip(void) {
 
   w25qxx_delay(10);
   w25qxx.lock = 0;
+  return true;
 }
 
-void w25qxx_erase_sector(uint32_t sector_addr) {
-  while (w25qxx.lock == 1) {
+bool w25qxx_erase_sector(uint32_t sector_addr) {
+  int32_t cnt = W25QXX_TIMEOUT;
+
+  while ((w25qxx.lock == 1) && (cnt-- >= 0)) {
     w25qxx_delay(1);
+  }
+
+  if (cnt < 0) {
+    return false;
   }
 
   w25qxx.lock = 1;
@@ -293,11 +314,19 @@ void w25qxx_erase_sector(uint32_t sector_addr) {
 
   w25qxx_delay(1);
   w25qxx.lock = 0;
+
+  return true;
 }
 
-void w25qxx_erase_block(uint32_t block_addr) {
-  while (w25qxx.lock == 1) {
+bool w25qxx_erase_block(uint32_t block_addr) {
+  int32_t cnt = W25QXX_TIMEOUT;
+
+  while ((w25qxx.lock == 1) && (cnt-- >= 0)) {
     w25qxx_delay(1);
+  }
+
+  if (cnt < 0) {
+    return false;
   }
 
   w25qxx.lock = 1;
@@ -325,6 +354,8 @@ void w25qxx_erase_block(uint32_t block_addr) {
 
   w25qxx_delay(1);
   w25qxx.lock = 0;
+
+  return true;
 }
 
 uint32_t w25qxx_page_to_sector(uint32_t page_addr) {
@@ -352,15 +383,21 @@ bool w25qxx_is_empty_page(uint32_t page_addr, uint32_t offset,
   uint8_t buffer[32];
   uint32_t work_addr;
   uint32_t i;
+  int32_t cnt = W25QXX_TIMEOUT;
 
-  while (w25qxx.lock == 1) {
+  while ((w25qxx.lock == 1) && (cnt-- >= 0)) {
     w25qxx_delay(1);
+  }
+
+  if (cnt < 0) {
+    return false;
   }
 
   w25qxx.lock = 1;
 
-  if (((number + offset) > w25qxx.page_size) || (number == 0))
+  if (((number + offset) > w25qxx.page_size) || (number == 0)) {
     number = w25qxx.page_size - offset;
+  }
 
   for (i = offset; i < w25qxx.page_size; i += sizeof(buffer)) {
     W25QXX_CS_LOW;
@@ -427,8 +464,15 @@ bool w25qxx_is_empty_sector(uint32_t sector_addr, uint32_t offset,
   uint8_t buffer[32];
   uint32_t work_addr;
   uint32_t i;
+  int32_t cnt = W25QXX_TIMEOUT;
 
-  while (w25qxx.lock == 1) w25qxx_delay(1);
+  while ((w25qxx.lock == 1) && (cnt-- >= 0)) {
+    w25qxx_delay(1);
+  }
+
+  if (cnt < 0) {
+    return false;
+  }
 
   w25qxx.lock = 1;
 
@@ -500,9 +544,14 @@ bool w25qxx_is_empty_block(uint32_t block_addr, uint32_t offset,
   uint8_t buffer[32];
   uint32_t work_addr;
   uint32_t i;
+  int32_t cnt = W25QXX_TIMEOUT;
 
-  while (w25qxx.lock == 1) {
+  while ((w25qxx.lock == 1) && (cnt-- >= 0)) {
     w25qxx_delay(1);
+  }
+
+  if (cnt < 0) {
+    return false;
   }
 
   w25qxx.lock = 1;
@@ -572,9 +621,15 @@ NOT_EMPTY:
   return false;
 }
 
-void w25qxx_write_byte(uint8_t buffer, uint32_t write_addr) {
-  while (w25qxx.lock == 1) {
+bool w25qxx_write_byte(uint8_t buffer, uint32_t write_addr) {
+  int32_t cnt = W25QXX_TIMEOUT;
+
+  while ((w25qxx.lock == 1) && (cnt-- >= 0)) {
     w25qxx_delay(1);
+  }
+
+  if (cnt < 0) {
+    return false;
   }
 
   w25qxx.lock = 1;
@@ -600,12 +655,19 @@ void w25qxx_write_byte(uint8_t buffer, uint32_t write_addr) {
   w25qxx_wait_for_write_end();
 
   w25qxx.lock = 0;
+  return true;
 }
 
-void w25qxx_write_page(uint8_t *buffer, uint32_t page_addr, uint32_t offset,
+bool w25qxx_write_page(uint8_t *buffer, uint32_t page_addr, uint32_t offset,
                        uint32_t number) {
-  while (w25qxx.lock == 1) {
+  int32_t cnt = W25QXX_TIMEOUT;
+
+  while ((w25qxx.lock == 1) && (cnt-- >= 0)) {
     w25qxx_delay(1);
+  }
+
+  if (cnt < 0) {
+    return false;
   }
 
   w25qxx.lock = 1;
@@ -643,9 +705,10 @@ void w25qxx_write_page(uint8_t *buffer, uint32_t page_addr, uint32_t offset,
 
   w25qxx_delay(1);
   w25qxx.lock = 0;
+  return true;
 }
 
-void w25qxx_write_sector(uint8_t *buffer, uint32_t sector_addr, uint32_t offset,
+bool w25qxx_write_sector(uint8_t *buffer, uint32_t sector_addr, uint32_t offset,
                          uint32_t number) {
   uint32_t start_page;
   int32_t bytes_to_write;
@@ -656,13 +719,15 @@ void w25qxx_write_sector(uint8_t *buffer, uint32_t sector_addr, uint32_t offset,
   }
 
   if (offset >= w25qxx.sector_size) {
-    return;
+    return false;
   }
 
-  if ((offset + number) > w25qxx.sector_size)
+  if ((offset + number) > w25qxx.sector_size) {
     bytes_to_write = w25qxx.sector_size - offset;
-  else
+  }
+  else {
     bytes_to_write = number;
+  }
 
   start_page = w25qxx_sector_to_page(sector_addr) + (offset / w25qxx.page_size);
   local_offset = offset % w25qxx.page_size;
@@ -674,9 +739,11 @@ void w25qxx_write_sector(uint8_t *buffer, uint32_t sector_addr, uint32_t offset,
     buffer += w25qxx.page_size - local_offset;
     local_offset = 0;
   } while (bytes_to_write > 0);
+
+  return true;
 }
 
-void w25qxx_write_block(uint8_t *buffer, uint32_t block_addr, uint32_t offset,
+bool w25qxx_write_block(uint8_t *buffer, uint32_t block_addr, uint32_t offset,
                         uint32_t number) {
   uint32_t start_page;
   int32_t bytes_to_write;
@@ -687,13 +754,15 @@ void w25qxx_write_block(uint8_t *buffer, uint32_t block_addr, uint32_t offset,
   }
 
   if (offset >= w25qxx.block_size) {
-    return;
+    return false;
   }
 
-  if ((offset + number) > w25qxx.block_size)
+  if ((offset + number) > w25qxx.block_size) {
     bytes_to_write = w25qxx.block_size - offset;
-  else
+  }
+  else {
     bytes_to_write = number;
+  }
 
   start_page = w25qxx_block_to_page(block_addr) + (offset / w25qxx.page_size);
   local_offset = offset % w25qxx.page_size;
@@ -705,11 +774,19 @@ void w25qxx_write_block(uint8_t *buffer, uint32_t block_addr, uint32_t offset,
     buffer += w25qxx.page_size - local_offset;
     local_offset = 0;
   } while (bytes_to_write > 0);
+
+  return true;
 }
 
-void w25qxx_read_byte(uint8_t *buffer, uint32_t bytes_address) {
-  while (w25qxx.lock == 1) {
+bool w25qxx_read_byte(uint8_t *buffer, uint32_t bytes_address) {
+  int32_t cnt = W25QXX_TIMEOUT;
+
+  while ((w25qxx.lock == 1) && (cnt-- >= 0)) {
     w25qxx_delay(1);
+  }
+
+  if (cnt < 0) {
+    return false;
   }
 
   w25qxx.lock = 1;
@@ -731,11 +808,18 @@ void w25qxx_read_byte(uint8_t *buffer, uint32_t bytes_address) {
   W25QXX_CS_HIGH;
 
   w25qxx.lock = 0;
+  return true;
 }
 
-void w25qxx_read_bytes(uint8_t *buffer, uint32_t read_addr, uint32_t number) {
-  while (w25qxx.lock == 1) {
+bool w25qxx_read_bytes(uint8_t *buffer, uint32_t read_addr, uint32_t number) {
+  int32_t cnt = W25QXX_TIMEOUT;
+
+  while ((w25qxx.lock == 1) && (cnt-- >= 0)) {
     w25qxx_delay(1);
+  }
+
+  if (cnt < 0) {
+    return false;
   }
 
   w25qxx.lock = 1;
@@ -758,12 +842,19 @@ void w25qxx_read_bytes(uint8_t *buffer, uint32_t read_addr, uint32_t number) {
 
   w25qxx_delay(1);
   w25qxx.lock = 0;
+  return true;
 }
 
-void w25qxx_read_page(uint8_t *buffer, uint32_t page_addr, uint32_t offset,
+bool w25qxx_read_page(uint8_t *buffer, uint32_t page_addr, uint32_t offset,
                       uint32_t number) {
-  while (w25qxx.lock == 1) {
+  int32_t cnt = W25QXX_TIMEOUT;
+
+  while ((w25qxx.lock == 1) && (cnt-- >= 0)) {
     w25qxx_delay(1);
+  }
+
+  if (cnt < 0) {
+    return false;
   }
 
   w25qxx.lock = 1;
@@ -796,25 +887,29 @@ void w25qxx_read_page(uint8_t *buffer, uint32_t page_addr, uint32_t offset,
 
   w25qxx_delay(1);
   w25qxx.lock = 0;
+  return true;
 }
 
-void w25qxx_read_sector(uint8_t *buffer, uint32_t sector_addr, uint32_t offset,
+bool w25qxx_read_sector(uint8_t *buffer, uint32_t sector_addr, uint32_t offset,
                         uint32_t number) {
   uint32_t start_page;
   int32_t bytes_to_read;
   uint32_t local_offset;
 
-  if ((number > w25qxx.sector_size) || (number == 0))
+  if ((number > w25qxx.sector_size) || (number == 0)) {
     number = w25qxx.sector_size;
-
-  if (offset >= w25qxx.sector_size) {
-    return;
   }
 
-  if ((offset + number) > w25qxx.sector_size)
+  if (offset >= w25qxx.sector_size) {
+    return false;
+  }
+
+  if ((offset + number) > w25qxx.sector_size) {
     bytes_to_read = w25qxx.sector_size - offset;
-  else
+  }
+  else {
     bytes_to_read = number;
+  }
 
   start_page = w25qxx_sector_to_page(sector_addr) + (offset / w25qxx.page_size);
   local_offset = offset % w25qxx.page_size;
@@ -826,9 +921,11 @@ void w25qxx_read_sector(uint8_t *buffer, uint32_t sector_addr, uint32_t offset,
     buffer += w25qxx.page_size - local_offset;
     local_offset = 0;
   } while (bytes_to_read > 0);
+
+  return true;
 }
 
-void w25qxx_read_block(uint8_t *buffer, uint32_t block_addr, uint32_t offset,
+bool w25qxx_read_block(uint8_t *buffer, uint32_t block_addr, uint32_t offset,
                        uint32_t number) {
   uint32_t start_page;
   int32_t bytes_to_read;
@@ -839,13 +936,15 @@ void w25qxx_read_block(uint8_t *buffer, uint32_t block_addr, uint32_t offset,
   }
 
   if (offset >= w25qxx.block_size) {
-    return;
+    return false;
   }
 
-  if ((offset + number) > w25qxx.block_size)
+  if ((offset + number) > w25qxx.block_size) {
     bytes_to_read = w25qxx.block_size - offset;
-  else
+  }
+  else {
     bytes_to_read = number;
+  }
 
   start_page = w25qxx_block_to_page(block_addr) + (offset / w25qxx.page_size);
   local_offset = offset % w25qxx.page_size;
@@ -857,4 +956,6 @@ void w25qxx_read_block(uint8_t *buffer, uint32_t block_addr, uint32_t offset,
     buffer += w25qxx.page_size - local_offset;
     local_offset = 0;
   } while (bytes_to_read > 0);
+
+  return true;
 }

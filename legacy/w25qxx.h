@@ -79,9 +79,9 @@ extern w25qxx_t w25qxx;
 // bytes
 bool w25qxx_init(void);
 
-void w25qxx_erase_chip(void);
-void w25qxx_erase_sector(uint32_t sector_addr);
-void w25qxx_erase_block(uint32_t block_addr);
+bool w25qxx_erase_chip(void);
+bool w25qxx_erase_sector(uint32_t sector_addr);
+bool w25qxx_erase_block(uint32_t block_addr);
 
 uint32_t w25qxx_page_to_sector(uint32_t page_addr);
 uint32_t w25qxx_page_to_block(uint32_t page_addr);
@@ -95,23 +95,22 @@ bool w25qxx_is_empty_sector(uint32_t sector_addr, uint32_t offset,
 bool w25qxx_is_empty_block(uint32_t block_addr, uint32_t offset,
                            uint32_t number);
 
-void w25qxx_write_byte(uint8_t buffer, uint32_t bytes_addr);
-void w25qxx_write_page(uint8_t *buffer, uint32_t page_addr, uint32_t offset,
+bool w25qxx_write_byte(uint8_t buffer, uint32_t bytes_addr);
+bool w25qxx_write_page(uint8_t *buffer, uint32_t page_addr, uint32_t offset,
                        uint32_t number);
-void w25qxx_write_sector(uint8_t *buffer, uint32_t sector_addr, uint32_t offset,
+bool w25qxx_write_sector(uint8_t *buffer, uint32_t sector_addr, uint32_t offset,
                          uint32_t number);
-void w25qxx_write_block(uint8_t *buffer, uint32_t block_addr, uint32_t offset,
+bool w25qxx_write_block(uint8_t *buffer, uint32_t block_addr, uint32_t offset,
                         uint32_t number);
 
-void w25qxx_read_byte(uint8_t *buffer, uint32_t bytes_addr);
-void w25qxx_read_bytes(uint8_t *buffer, uint32_t read_addr, uint32_t number);
-void w25qxx_read_page(uint8_t *buffer, uint32_t page_addr, uint32_t offset,
+bool w25qxx_read_byte(uint8_t *buffer, uint32_t bytes_addr);
+bool w25qxx_read_bytes(uint8_t *buffer, uint32_t read_addr, uint32_t number);
+bool w25qxx_read_page(uint8_t *buffer, uint32_t page_addr, uint32_t offset,
                       uint32_t number);
-void w25qxx_read_sector(uint8_t *buffer, uint32_t sector_addr, uint32_t offset,
+bool w25qxx_read_sector(uint8_t *buffer, uint32_t sector_addr, uint32_t offset,
                         uint32_t number);
-void w25qxx_read_block(uint8_t *buffer, uint32_t block_addr, uint32_t offset,
+bool w25qxx_read_block(uint8_t *buffer, uint32_t block_addr, uint32_t offset,
                        uint32_t number);
-void flast_test(void);
 
 #ifdef __cplusplus
 }
