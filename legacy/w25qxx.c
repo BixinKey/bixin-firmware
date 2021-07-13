@@ -1,12 +1,9 @@
+#include "w25qxx.h"
 #include <libopencm3/stm32/gpio.h>
 #include <libopencm3/stm32/spi.h>
-#include <stdint.h>
-#include <string.h>
-#include "util.h"
-#include "w25qxx.h"
 
-#define W25QXX_DUMMY_BYTE   0xA5
-#define W25QXX_TIMEOUT      1024
+#define W25QXX_DUMMY_BYTE 0xA5
+#define W25QXX_TIMEOUT 10000
 
 w25qxx_t w25qxx;
 
@@ -21,10 +18,11 @@ void spi_delay(unsigned int delay_ms) {
 #define w25qxx_delay(delay) spi_delay(delay)
 
 void gpio_write_pin(uint32_t port, uint32_t gpio, uint32_t value) {
-  if (value == GPIO_PIN_RESET)
+  if (value == GPIO_PIN_RESET) {
     gpio_clear(port, gpio);
-  else
+  } else {
     gpio_set(port, gpio);
+  }
 }
 
 #define W25QXX_CS_LOW \
@@ -33,8 +31,9 @@ void gpio_write_pin(uint32_t port, uint32_t gpio, uint32_t value) {
   gpio_write_pin(_W25QXX_CS_GPIO, _W25QXX_CS_PIN, GPIO_PIN_SET)
 
 void hal_spi_transmit(uint8_t *data, uint16_t size, uint32_t timeout) {
-  if ((data == NULL) || (size > (w25qxx.capacity_in_kilobyte * 1024)))
+  if ((data == NULL) || (size > (w25qxx.capacity_in_kilobyte * 1024))) {
     return;
+  }
 
   timeout = timeout;
 
@@ -124,13 +123,11 @@ uint8_t w25qxx_read_status_register(uint8_t select) {
     w25qxx_spi(W25QXX_CMD_READ_REG_SR1);
     status = w25qxx_spi(W25QXX_DUMMY_BYTE);
     w25qxx.status_register1 = status;
-  }
-  else if (select == 2) {
+  } else if (select == 2) {
     w25qxx_spi(W25QXX_CMD_READ_REG_SR2);
     status = w25qxx_spi(W25QXX_DUMMY_BYTE);
     w25qxx.status_register2 = status;
-  }
-  else {
+  } else {
     w25qxx_spi(0x15);
     status = w25qxx_spi(W25QXX_DUMMY_BYTE);
     w25qxx.status_register3 = status;
@@ -146,12 +143,10 @@ void w25qxx_write_status_register(uint8_t select, uint8_t data) {
   if (select == 1) {
     w25qxx_spi(W25QXX_CMD_WRITE_REG_SR);
     w25qxx.status_register1 = data;
-  }
-  else if (select == 2) {
+  } else if (select == 2) {
     w25qxx_spi(0x31);
     w25qxx.status_register2 = data;
-  }
-  else {
+  } else {
     w25qxx_spi(0x11);
     w25qxx.status_register3 = data;
   }
@@ -161,7 +156,9 @@ void w25qxx_write_status_register(uint8_t select, uint8_t data) {
   W25QXX_CS_HIGH;
 }
 
-void w25qxx_wait_for_write_end(void) {
+bool w25qxx_wait_for_write_end(void) {
+  int32_t cnt = W25QXX_TIMEOUT;
+
   w25qxx_delay(1);
 
   W25QXX_CS_LOW;
@@ -171,9 +168,15 @@ void w25qxx_wait_for_write_end(void) {
   do {
     w25qxx.status_register1 = w25qxx_spi(W25QXX_DUMMY_BYTE);
     w25qxx_delay(1);
-  } while ((w25qxx.status_register1 & 0x01) == 0x01);
+  } while (((w25qxx.status_register1 & 0x01) == 0x01) && (cnt-- >= 0));
 
   W25QXX_CS_HIGH;
+
+  if (cnt < 0) {
+    return false;
+  } else {
+    return true;
+  }
 }
 
 bool w25qxx_init(void) {
@@ -271,7 +274,10 @@ bool w25qxx_erase_chip(void) {
 
   W25QXX_CS_HIGH;
 
-  w25qxx_wait_for_write_end();
+  if (!w25qxx_wait_for_write_end()) {
+    w25qxx.lock = 0;
+    return false;
+  }
 
   w25qxx_delay(10);
   w25qxx.lock = 0;
@@ -291,7 +297,10 @@ bool w25qxx_erase_sector(uint32_t sector_addr) {
 
   w25qxx.lock = 1;
 
-  w25qxx_wait_for_write_end();
+  if (!w25qxx_wait_for_write_end()) {
+    w25qxx.lock = 0;
+    return false;
+  }
 
   sector_addr = sector_addr * w25qxx.sector_size;
 
@@ -310,7 +319,10 @@ bool w25qxx_erase_sector(uint32_t sector_addr) {
 
   W25QXX_CS_HIGH;
 
-  w25qxx_wait_for_write_end();
+  if (!w25qxx_wait_for_write_end()) {
+    w25qxx.lock = 0;
+    return false;
+  }
 
   w25qxx_delay(1);
   w25qxx.lock = 0;
@@ -331,7 +343,10 @@ bool w25qxx_erase_block(uint32_t block_addr) {
 
   w25qxx.lock = 1;
 
-  w25qxx_wait_for_write_end();
+  if (!w25qxx_wait_for_write_end()) {
+    w25qxx.lock = 0;
+    return false;
+  }
 
   block_addr = block_addr * w25qxx.sector_size * 16;
 
@@ -350,7 +365,10 @@ bool w25qxx_erase_block(uint32_t block_addr) {
 
   W25QXX_CS_HIGH;
 
-  w25qxx_wait_for_write_end();
+  if (!w25qxx_wait_for_write_end()) {
+    w25qxx.lock = 0;
+    return false;
+  }
 
   w25qxx_delay(1);
   w25qxx.lock = 0;
@@ -634,7 +652,10 @@ bool w25qxx_write_byte(uint8_t buffer, uint32_t write_addr) {
 
   w25qxx.lock = 1;
 
-  w25qxx_wait_for_write_end();
+  if (!w25qxx_wait_for_write_end()) {
+    w25qxx.lock = 0;
+    return false;
+  }
 
   w25qxx_write_enable();
 
@@ -652,7 +673,10 @@ bool w25qxx_write_byte(uint8_t buffer, uint32_t write_addr) {
 
   W25QXX_CS_HIGH;
 
-  w25qxx_wait_for_write_end();
+  if (!w25qxx_wait_for_write_end()) {
+    w25qxx.lock = 0;
+    return false;
+  }
 
   w25qxx.lock = 0;
   return true;
@@ -680,7 +704,10 @@ bool w25qxx_write_page(uint8_t *buffer, uint32_t page_addr, uint32_t offset,
     number = w25qxx.page_size - offset;
   }
 
-  w25qxx_wait_for_write_end();
+  if (!w25qxx_wait_for_write_end()) {
+    w25qxx.lock = 0;
+    return false;
+  }
 
   w25qxx_write_enable();
 
@@ -701,7 +728,10 @@ bool w25qxx_write_page(uint8_t *buffer, uint32_t page_addr, uint32_t offset,
 
   W25QXX_CS_HIGH;
 
-  w25qxx_wait_for_write_end();
+  if (!w25qxx_wait_for_write_end()) {
+    w25qxx.lock = 0;
+    return false;
+  }
 
   w25qxx_delay(1);
   w25qxx.lock = 0;
@@ -724,8 +754,7 @@ bool w25qxx_write_sector(uint8_t *buffer, uint32_t sector_addr, uint32_t offset,
 
   if ((offset + number) > w25qxx.sector_size) {
     bytes_to_write = w25qxx.sector_size - offset;
-  }
-  else {
+  } else {
     bytes_to_write = number;
   }
 
@@ -759,8 +788,7 @@ bool w25qxx_write_block(uint8_t *buffer, uint32_t block_addr, uint32_t offset,
 
   if ((offset + number) > w25qxx.block_size) {
     bytes_to_write = w25qxx.block_size - offset;
-  }
-  else {
+  } else {
     bytes_to_write = number;
   }
 
@@ -906,8 +934,7 @@ bool w25qxx_read_sector(uint8_t *buffer, uint32_t sector_addr, uint32_t offset,
 
   if ((offset + number) > w25qxx.sector_size) {
     bytes_to_read = w25qxx.sector_size - offset;
-  }
-  else {
+  } else {
     bytes_to_read = number;
   }
 
@@ -941,8 +968,7 @@ bool w25qxx_read_block(uint8_t *buffer, uint32_t block_addr, uint32_t offset,
 
   if ((offset + number) > w25qxx.block_size) {
     bytes_to_read = w25qxx.block_size - offset;
-  }
-  else {
+  } else {
     bytes_to_read = number;
   }
 

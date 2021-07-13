@@ -6,6 +6,9 @@ extern "C" {
 #endif
 
 #include <stdbool.h>
+#include <stdint.h>
+#include <string.h>
+#include "util.h"
 
 // config info
 #define _W25QXX_SPI SPI2
